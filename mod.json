@@ -1,0 +1,35 @@
+{
+  "geode": "5.10.1",
+  "gd": {
+    "win": "2.2081"
+  },
+  "version": "v0.1.0",
+  "id": "egor.frame-window-recorder",
+  "name": "Frame Window Recorder",
+  "developer": "Egor + OpenAI",
+  "description": "Records a successful macro first, then measures the real frame window of each input by replaying shifted inputs against Geometry Dash itself.",
+  "settings": {
+    "max-shift": {
+      "type": "int",
+      "default": 12,
+      "min": 1,
+      "max": 120,
+      "name": "Max probe shift",
+      "description": "Maximum number of 240 TPS physics frames to test early and late for each input."
+    },
+    "analyze-releases": {
+      "type": "bool",
+      "default": true,
+      "name": "Analyze releases",
+      "description": "Also measure release timing windows. Disable to measure presses only."
+    },
+    "inject-offset": {
+      "type": "int",
+      "default": 0,
+      "min": -3,
+      "max": 3,
+      "name": "Replay inject offset",
+      "description": "If a clean macro replay is consistently one tick off, try -1 or +1."
+    }
+  }
+}

@@ -3,11 +3,11 @@
   "gd": {
     "win": "2.2074"
   },
-  "version": "v0.1.2",
+  "version": "v0.1.3",
   "id": "egor.frame-window-recorder",
   "name": "Frame Window Recorder",
   "developer": "Egor + OpenAI",
-  "description": "Measures click frame windows with local survival tests, colored in-level rings and sound cues.",
+  "description": "240-TPS frame-window analyzer with xdBot replay capture, duplicate-input filtering, colored outlined markers and sound cues.",
   "settings": {
     "max-shift": {
       "type": "int",
@@ -15,13 +15,13 @@
       "min": 1,
       "max": 120,
       "name": "Max probe shift",
-      "description": "Maximum number of physics frames to test early and late for each input."
+      "description": "Maximum number of 240-TPS frames to test early and late for each input."
     },
     "analyze-releases": {
       "type": "bool",
       "default": false,
       "name": "Analyze releases",
-      "description": "Also measure release timing windows. Disable to measure presses only."
+      "description": "Also measure release timing windows. Presses only is recommended for the reference-style counter."
     },
     "inject-offset": {
       "type": "int",
@@ -29,7 +29,7 @@
       "min": -3,
       "max": 3,
       "name": "Replay inject offset",
-      "description": "If a clean macro replay is consistently one tick off, try -1 or +1."
+      "description": "240-TPS replay offset. Leave at 0 when capturing xdBot at 240 TPS."
     },
     "validation-frames": {
       "type": "int",
@@ -37,7 +37,7 @@
       "min": 8,
       "max": 1200,
       "name": "Validation horizon",
-      "description": "How many physics ticks a shifted click must survive before it counts as valid. Shorter avoids unrelated later deaths."
+      "description": "How many 240-TPS ticks a shifted input must survive. Tests stop before the next press when it is closer."
     },
     "next-input-slack": {
       "type": "int",
@@ -45,7 +45,7 @@
       "min": 0,
       "max": 20,
       "name": "Next input slack",
-      "description": "Stops a probe this many ticks before the next independent click, so a later click is not blamed on the one being measured."
+      "description": "Stops a probe this many 240-TPS ticks before the next press so later inputs are not blamed on the current one."
     }
   }
 }

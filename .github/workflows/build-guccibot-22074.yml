@@ -22,7 +22,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: Nigelx1/GucciBot
-          ref: master
+          ref: d22190413e898fdb8e55efc8eb7de98dda43de00
           path: guccibot
 
       - name: Patch source for GD 2.2074 / Geode 4.0.0
@@ -34,10 +34,9 @@ jobs:
           $j = Get-Content $p -Raw | ConvertFrom-Json
           $j.geode = '4.0.0'
           $j.gd.win = '2.2074'
-          $j.version = 'v2.0.0-beta.2-22074'
-          $j.description = $j.description + ' (unofficial GD 2.2074 compatibility build)'
-          $jsonText = $j | ConvertTo-Json -Depth 20
-          [System.IO.File]::WriteAllText($p, $jsonText, $utf8NoBom)
+          $j.version = 'v2.0.0-beta.1-22074'
+          $j.description = $j.description + ' (GD 2.2074 compatibility build)'
+          [System.IO.File]::WriteAllText($p, ($j | ConvertTo-Json -Depth 20), $utf8NoBom)
 
           $cmake = 'guccibot/CMakeLists.txt'
           $src = Get-Content $cmake -Raw
@@ -49,34 +48,6 @@ jobs:
             $text = [regex]::Replace($text, '(?<!:)std::', '::std::')
             [System.IO.File]::WriteAllText($_.FullName, $text, $utf8NoBom)
           }
-
-          $gpu = 'guccibot/src/absense/gpu/client.cpp'
-          $text = [System.IO.File]::ReadAllText($gpu)
-          $text = $text.Replace('const uint32_t commandIndex = pl->m_gameState.m_commandIndex;', 'const uint32_t commandIndex = 0; // GD 2.2074 compatibility')
-          [System.IO.File]::WriteAllText($gpu, $text, $utf8NoBom)
-
-          # GD 2.2074 queueButton has no sub-frame timestamp parameter.
-          $judge = 'guccibot/src/absense/judge.cpp'
-          $text = [System.IO.File]::ReadAllText($judge)
-          $text = $text.Replace('pl->queueButton(1, false, false, 0.0);', 'pl->queueButton(1, false, false);')
-          $text = $text.Replace('pl->queueButton(1, true, false, 0.0);', 'pl->queueButton(1, true, false);')
-          $text = $text.Replace('pl->queueButton(1, in.held, false, 0.0);', 'pl->queueButton(1, in.held, false);')
-          [System.IO.File]::WriteAllText($judge, $text, $utf8NoBom)
-
-          # These ledger hooks have no callable addresses in the 2.2074
-          # bindings. Drop only those optional pathfinder hooks; core macro,
-          # replay and frame-window functionality stays compiled.
-          $hooks = 'guccibot/src/absense/hooks.cpp'
-          $text = [System.IO.File]::ReadAllText($hooks)
-          $patterns = @(
-            '(?s)\r?\n    void rotateObjects\(cocos2d::CCArray\* objects, float rotation, cocos2d::CCPoint position,\r?\n                       cocos2d::CCPoint offset, bool finished, bool unused\) \{.*?\r?\n    \}',
-            '(?s)\r?\n    void rotateObject\(GameObject\* object, float rotation\) \{.*?\r?\n    \}',
-            '(?s)\r?\n    void transformAreaObjects\(GameObject\* object, cocos2d::CCArray\* objects, float scaleX, float scaleY,\r?\n                              bool reset\) \{.*?\r?\n    \}',
-            '(?s)\r?\n    void toggleGroup\(int id, bool activate\) \{.*?\r?\n    \}',
-            '(?s)\r?\nclass \$modify\(AbsEnhancedGameObject, EnhancedGameObject\) \{.*?\r?\n\};'
-          )
-          foreach ($pat in $patterns) { $text = [regex]::Replace($text, $pat, '') }
-          [System.IO.File]::WriteAllText($hooks, $text, $utf8NoBom)
 
       - name: Build GucciBot
         id: build

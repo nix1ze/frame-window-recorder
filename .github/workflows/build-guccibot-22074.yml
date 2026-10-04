@@ -5,7 +5,7 @@ on:
   push:
     paths:
       - '.github/workflows/build-guccibot-22074.yml'
-      - 'scripts/patch_guccibot_22074.ps1'
+      - 'scripts/patch_guccibot_22074_legacy.ps1'
 
 permissions:
   contents: read
@@ -23,12 +23,12 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: Nigelx1/GucciBot
-          ref: d22190413e898fdb8e55efc8eb7de98dda43de00
+          ref: 4b2b033caa0721711874fd9cd000d43d362e46c1
           path: guccibot
 
       - name: Patch source for GD 2.2074 / Geode 4.0.0
         shell: powershell
-        run: ./scripts/patch_guccibot_22074.ps1
+        run: ./scripts/patch_guccibot_22074_legacy.ps1
 
       - name: Build GucciBot
         id: build

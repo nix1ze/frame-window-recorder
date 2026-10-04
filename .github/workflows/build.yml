@@ -22,6 +22,17 @@ jobs:
           "C:\Program Files\LLVM\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
           & "C:\Program Files\LLVM\bin\clang.exe" --version
 
+      - name: Patch source for GD 2.2074
+        shell: powershell
+        run: |
+          $path = "src/main.cpp"
+          $src = Get-Content $path -Raw
+          $src = $src.Replace('return Mod::get()->getSettingValue<int>("max-shift");', 'return static_cast<int>(Mod::get()->getSettingValue<int64_t>("max-shift"));')
+          $src = $src.Replace('return Mod::get()->getSettingValue<int>("inject-offset");', 'return static_cast<int>(Mod::get()->getSettingValue<int64_t>("inject-offset"));')
+          $src = $src.Replace('void processCommands(float dt, bool p1, bool p2) {', 'void processCommands(float dt) {')
+          $src = $src.Replace('GJBaseGameLayer::processCommands(dt, p1, p2);', 'GJBaseGameLayer::processCommands(dt);')
+          Set-Content $path $src -NoNewline
+
       - name: Build Geode mod
         id: build
         uses: geode-sdk/build-geode-mod@main

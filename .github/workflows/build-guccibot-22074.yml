@@ -44,6 +44,23 @@ jobs:
           $src = $src.Replace('CPMAddPackage("gh:cursey/safetyhook#main")', 'CPMAddPackage("gh:cursey/safetyhook#661227263199a15a046b241bb096cf4501e6023a")')
           [System.IO.File]::WriteAllText($cmake, $src, $utf8NoBom)
 
+          # Geode 4 exposes an internal gucci::std during a few include paths;
+          # qualify all standard-library names explicitly so the current source
+          # remains unambiguous on the older SDK.
+          Get-ChildItem 'guccibot/src' -Recurse -File | Where-Object { $_.Extension -in '.cpp','.hpp','.h' } | ForEach-Object {
+            $text = [System.IO.File]::ReadAllText($_.FullName)
+            $text = [regex]::Replace($text, '(?<!:)std::', '::std::')
+            [System.IO.File]::WriteAllText($_.FullName, $text, $utf8NoBom)
+          }
+
+          # m_commandIndex was added after GD 2.2074. The GPU fallback only
+          # uses it as a freshness stamp, so zero disables stale live-step
+          # inference while the normal World/card path keeps working.
+          $gpu = 'guccibot/src/absense/gpu/client.cpp'
+          $text = [System.IO.File]::ReadAllText($gpu)
+          $text = $text.Replace('const uint32_t commandIndex = pl->m_gameState.m_commandIndex;', 'const uint32_t commandIndex = 0; // GD 2.2074 compatibility')
+          [System.IO.File]::WriteAllText($gpu, $text, $utf8NoBom)
+
       - name: Build GucciBot
         id: build
         uses: geode-sdk/build-geode-mod@fa00cb245f128c40c90fd234c6347f635692c3ef

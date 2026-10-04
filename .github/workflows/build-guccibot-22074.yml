@@ -5,6 +5,7 @@ on:
   push:
     paths:
       - '.github/workflows/build-guccibot-22074.yml'
+      - 'scripts/patch_guccibot_22074.ps1'
 
 permissions:
   contents: read
@@ -27,55 +28,7 @@ jobs:
 
       - name: Patch source for GD 2.2074 / Geode 4.0.0
         shell: powershell
-        run: |
-          $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
-
-          $p = 'guccibot/mod.json'
-          $j = Get-Content $p -Raw | ConvertFrom-Json
-          $j.geode = '4.0.0'
-          $j.gd.win = '2.2074'
-          $j.version = 'v2.0.0-beta.1-22074'
-          $j.description = $j.description + ' (GD 2.2074 compatibility build)'
-          [System.IO.File]::WriteAllText($p, ($j | ConvertTo-Json -Depth 20), $utf8NoBom)
-
-          $cmake = 'guccibot/CMakeLists.txt'
-          $src = Get-Content $cmake -Raw
-          $src = $src.Replace('CPMAddPackage("gh:cursey/safetyhook#main")', 'CPMAddPackage("gh:cursey/safetyhook#661227263199a15a046b241bb096cf4501e6023a")')
-          [System.IO.File]::WriteAllText($cmake, $src, $utf8NoBom)
-
-          Get-ChildItem 'guccibot/src' -Recurse -File | Where-Object { $_.Extension -in '.cpp','.hpp','.h' } | ForEach-Object {
-            $text = [System.IO.File]::ReadAllText($_.FullName)
-            $text = [regex]::Replace($text, '(?<!:)std::', '::std::')
-            [System.IO.File]::WriteAllText($_.FullName, $text, $utf8NoBom)
-          }
-
-          $fw = 'guccibot/src/analysis/ac/framewindow.cpp'
-          $text = [System.IO.File]::ReadAllText($fw)
-          $text = $text.Replace('m_probeDied || pl->m_playerDied', 'm_probeDied')
-          $text = $text.Replace('pl->m_playerDied = false;', '/* GD 2.2074: m_probeDied is authoritative */')
-          $text = $text.Replace('pl->m_playerDied', 'm_probeDied')
-          $diagPattern = '(?s)namespace \{\r?\nstruct PlayerField.*?\}\s*// namespace gucci\r?\n'
-          $diagStub = "namespace gucci {`n::std::vector<::std::string> fwPlayerFieldDump(PlayerObject* p) {`n    (void)p;`n    return {};`n}`n} // namespace gucci`n"
-          $text = [regex]::Replace($text, $diagPattern, $diagStub, 1)
-          $reportPattern = '(?s)void FrameWindowAnalyzer::reportStateDiff\(PlayLayer\* pl\) \{.*?\r?\n\}\r?\n\r?\n(?=void FrameWindowAnalyzer::reassertHeldButtons)'
-          $reportStub = "void FrameWindowAnalyzer::reportStateDiff(PlayLayer* pl) {`n    (void)pl;`n}`n`n"
-          $text = [regex]::Replace($text, $reportPattern, $reportStub, 1)
-          [System.IO.File]::WriteAllText($fw, $text, $utf8NoBom)
-
-          $mp = 'guccibot/src/analysis/macropath.cpp'
-          $text = [System.IO.File]::ReadAllText($mp)
-          $text = $text.Replace('lineNode->m_bUseArea = false;', '')
-          $text = $text.Replace('markerNode->m_bUseArea = false;', '')
-          [System.IO.File]::WriteAllText($mp, $text, $utf8NoBom)
-
-          $pf = 'guccibot/src/analysis/pathfinder.cpp'
-          $text = [System.IO.File]::ReadAllText($pf)
-          $text = $text.Replace('pl->m_playerDied', '(pl->m_player1 && pl->m_player1->m_isDead)')
-          [System.IO.File]::WriteAllText($pf, $text, $utf8NoBom)
-
-          $traj = 'guccibot/src/analysis/trajectory.cpp'
-          $trajStub = [System.Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('I2luY2x1ZGUgInRyYWplY3RvcnkuaHBwIgoKbmFtZXNwYWNlIGd1Y2NpIHsKVHJhamVjdG9yeVByZWRpY3Rpb25TZXJ2aWNlJiBUcmFqZWN0b3J5UHJlZGljdGlvblNlcnZpY2U6OmdldCgpIHsKICAgIHN0YXRpYyBUcmFqZWN0b3J5UHJlZGljdGlvblNlcnZpY2UgczsKICAgIHJldHVybiBzOwp9CmJvb2wgVHJhamVjdG9yeVByZWRpY3Rpb25TZXJ2aWNlOjppc0FjdGl2ZVNpbXVsYXRpb24oKSBjb25zdCB7IHJldHVybiBmYWxzZTsgfQpib29sIFRyYWplY3RvcnlQcmVkaWN0aW9uU2VydmljZTo6aXNQcm9jZXNzaW5nT3JiVG91Y2goKSBjb25zdCB7IHJldHVybiBmYWxzZTsgfQp2b2lkIFRyYWplY3RvcnlQcmVkaWN0aW9uU2VydmljZTo6bWFya0RpcnR5KCkgeyBtX2NvbnRleHQuZGlydHkgPSB0cnVlOyB9CnZvaWQgVHJhamVjdG9yeVByZWRpY3Rpb25TZXJ2aWNlOjpjbGVhck92ZXJsYXkoKSB7fQp2b2lkIFRyYWplY3RvcnlQcmVkaWN0aW9uU2VydmljZTo6YXR0YWNoKFBsYXlMYXllciopIHt9CnZvaWQgVHJhamVjdG9yeVByZWRpY3Rpb25TZXJ2aWNlOjpkZXRhY2goKSB7fQp2b2lkIFRyYWplY3RvcnlQcmVkaWN0aW9uU2VydmljZTo6dXBkYXRlUHJldmlldyhQbGF5TGF5ZXIqKSB7fQpib29sIFRyYWplY3RvcnlQcmVkaWN0aW9uU2VydmljZTo6cHJvYmVBZ2VuY3koUGxheUxheWVyKiwgUGxheWVyT2JqZWN0KiwgQWdlbmN5UmVzdWx0JiBvdXQsIGludCkgeyBvdXQgPSB7fTsgcmV0dXJuIGZhbHNlOyB9CmJvb2wgVHJhamVjdG9yeVByZWRpY3Rpb25TZXJ2aWNlOjpwcmVkaWN0U3RlcChQbGF5TGF5ZXIqLCBQbGF5ZXJPYmplY3QqIHNvdXJjZSwgYm9vbCwgY29jb3MyZDo6Q0NQb2ludCYgb3V0UG9zLCBmbG9hdCYgb3V0Um90KSB7CiAgICBpZiAoc291cmNlKSB7IG91dFBvcyA9IHNvdXJjZS0+Z2V0UG9zaXRpb24oKTsgb3V0Um90ID0gc291cmNlLT5nZXRSb3RhdGlvbigpOyB9CiAgICByZXR1cm4gZmFsc2U7Cn0KYm9vbCBUcmFqZWN0b3J5UHJlZGljdGlvblNlcnZpY2U6OmV4dHJhcG9sYXRlU3VidGljayhQbGF5TGF5ZXIqLCBQbGF5ZXJPYmplY3QqLCBmbG9hdCwgU3VidGlja1Bvc2UmIG91dCkgeyBvdXQgPSB7fTsgcmV0dXJuIGZhbHNlOyB9CnZvaWQgVHJhamVjdG9yeVByZWRpY3Rpb25TZXJ2aWNlOjp0cmFjZVN1YnRpY2tCcmFuY2goUGxheUxheWVyKiwgUGxheWVyT2JqZWN0KiwgZmxvYXQsIGJvb2wsIGNvY29zMmQ6OkNDRHJhd05vZGUqLCBjb2NvczJkOjpjY0NvbG9yNEYsIGZsb2F0KSB7fQp2b2lkIFRyYWplY3RvcnlQcmVkaWN0aW9uU2VydmljZTo6c2V0T3ZlcmxheVN1cHByZXNzZWQoYm9vbCB2KSB7IG1fb3ZlcmxheVN1cHByZXNzZWQgPSB2OyB9CmludCBUcmFqZWN0b3J5UHJlZGljdGlvblNlcnZpY2U6OnN1cnZpdmVzRm9yKFBsYXlMYXllciosIFBsYXllck9iamVjdCosIGludCwgaW50KSB7IHJldHVybiAtMTsgfQppbnQgVHJhamVjdG9yeVByZWRpY3Rpb25TZXJ2aWNlOjpzdXJ2aXZlc1NjcmlwdChQbGF5TGF5ZXIqLCBQbGF5ZXJPYmplY3QqLCBpbnQsIDo6c3RkOjp2ZWN0b3I8OjpzdGQ6OnBhaXI8aW50LCBib29sPj4gY29uc3QmLCA6OnN0ZDo6dmVjdG9yPGNvY29zMmQ6OkNDUG9pbnQ+KikgeyByZXR1cm4gLTE7IH0Kdm9pZCBUcmFqZWN0b3J5UHJlZGljdGlvblNlcnZpY2U6OmNhcHR1cmVGcmFtZURlbHRhKGZsb2F0IGR0KSB7IGlmIChkdCA+IDAuZikgbV9jb250ZXh0LnN0ZXBEZWx0YSA9IGR0OyB9CnZvaWQgVHJhamVjdG9yeVByZWRpY3Rpb25TZXJ2aWNlOjpub3RlU2ltdWxhdGVkRGVhdGgoUGxheWVyT2JqZWN0KiwgR2FtZU9iamVjdCopIHt9CmJvb2wgVHJhamVjdG9yeVByZWRpY3Rpb25TZXJ2aWNlOjpvd25zUHJldmlld1BsYXllcihQbGF5ZXJPYmplY3QqKSBjb25zdCB7IHJldHVybiBmYWxzZTsgfQppbnQgVHJhamVjdG9yeVByZWRpY3Rpb25TZXJ2aWNlOjpnZXRTdXJ2aXZlZEZyYW1lcyhib29sLCBib29sKSBjb25zdCB7IHJldHVybiAwOyB9CnZvaWQgVHJhamVjdG9yeVByZWRpY3Rpb25TZXJ2aWNlOjpvblJlYWxDbGljayhib29sLCBib29sKSB7fQp2b2lkIFRyYWplY3RvcnlQcmVkaWN0aW9uU2VydmljZTo6c2ltdWxhdGVDb2xsaXNpb25CYXRjaChHSkJhc2VHYW1lTGF5ZXIqLCBQbGF5ZXJPYmplY3QqLCBnZDo6dmVjdG9yPEdhbWVPYmplY3QqPiosIGludCwgZmxvYXQpIHt9CmJvb2wgVHJhamVjdG9yeVByZWRpY3Rpb25TZXJ2aWNlOjpoYW5kbGVBY3RpdmF0aW9uQ2hlY2soUGxheWVyT2JqZWN0KiwgRWZmZWN0R2FtZU9iamVjdCopIHsgcmV0dXJuIGZhbHNlOyB9CnZvaWQgVHJhamVjdG9yeVByZWRpY3Rpb25TZXJ2aWNlOjpoYW5kbGVUb3VjaGVkVHJpZ2dlcihQbGF5ZXJPYmplY3QqLCBFZmZlY3RHYW1lT2JqZWN0Kikge30KfSAvLyBuYW1lc3BhY2UgZ3VjY2kK'))
-          [System.IO.File]::WriteAllText($traj, $trajStub, $utf8NoBom)
+        run: ./scripts/patch_guccibot_22074.ps1
 
       - name: Build GucciBot
         id: build

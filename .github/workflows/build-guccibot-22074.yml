@@ -49,20 +49,74 @@ jobs:
             [System.IO.File]::WriteAllText($_.FullName, $text, $utf8NoBom)
           }
 
+          # Frame-window analyzer: GD 2.2074 has no PlayLayer::m_playerDied.
+          # GucciBot already has m_probeDied specifically for Calculate probes.
           $fw = 'guccibot/src/analysis/ac/framewindow.cpp'
           $text = [System.IO.File]::ReadAllText($fw)
           $text = $text.Replace('m_probeDied || pl->m_playerDied', 'm_probeDied')
           $text = $text.Replace('pl->m_playerDied = false;', '/* GD 2.2074: m_probeDied is authoritative */')
-          $text = $text.Replace('m_index, m_samples.size(), pl->m_playerDied);', 'm_index, m_samples.size(), m_probeDied);')
-
+          $text = $text.Replace('pl->m_playerDied', 'm_probeDied')
           $diagPattern = '(?s)namespace \{\r?\nstruct PlayerField.*?\}\s*// namespace gucci\r?\n'
           $diagStub = "namespace gucci {`n::std::vector<::std::string> fwPlayerFieldDump(PlayerObject* p) {`n    (void)p;`n    return {};`n}`n} // namespace gucci`n"
           $text = [regex]::Replace($text, $diagPattern, $diagStub, 1)
-
           $reportPattern = '(?s)void FrameWindowAnalyzer::reportStateDiff\(PlayLayer\* pl\) \{.*?\r?\n\}\r?\n\r?\n(?=void FrameWindowAnalyzer::reassertHeldButtons)'
           $reportStub = "void FrameWindowAnalyzer::reportStateDiff(PlayLayer* pl) {`n    (void)pl;`n}`n`n"
           $text = [regex]::Replace($text, $reportPattern, $reportStub, 1)
           [System.IO.File]::WriteAllText($fw, $text, $utf8NoBom)
+
+          # Cosmetic CCDrawNode internals became protected in the old SDK.
+          $mp = 'guccibot/src/analysis/macropath.cpp'
+          $text = [System.IO.File]::ReadAllText($mp)
+          $text = $text.Replace('lineNode->m_bUseArea = false;', '')
+          $text = $text.Replace('markerNode->m_bUseArea = false;', '')
+          [System.IO.File]::WriteAllText($mp, $text, $utf8NoBom)
+
+          # Old pathfinder death check equivalent.
+          $pf = 'guccibot/src/analysis/pathfinder.cpp'
+          $text = [System.IO.File]::ReadAllText($pf)
+          $text = $text.Replace('pl->m_playerDied', '(pl->m_player1 && pl->m_player1->m_isDead)')
+          [System.IO.File]::WriteAllText($pf, $text, $utf8NoBom)
+
+          # Trajectory preview in this revision snapshots several fields that
+          # only exist in GD 2.2081. It is not used by Calculate itself, so on
+          # 2.2074 provide a safe no-op service while retaining the public API.
+          $traj = 'guccibot/src/analysis/trajectory.cpp'
+          $trajStub = @"
+#include "trajectory.hpp"
+
+namespace gucci {
+TrajectoryPredictionService& TrajectoryPredictionService::get() {
+    static TrajectoryPredictionService s;
+    return s;
+}
+bool TrajectoryPredictionService::isActiveSimulation() const { return false; }
+bool TrajectoryPredictionService::isProcessingOrbTouch() const { return false; }
+void TrajectoryPredictionService::markDirty() { m_context.dirty = true; }
+void TrajectoryPredictionService::clearOverlay() {}
+void TrajectoryPredictionService::attach(PlayLayer*) {}
+void TrajectoryPredictionService::detach() {}
+void TrajectoryPredictionService::updatePreview(PlayLayer*) {}
+bool TrajectoryPredictionService::probeAgency(PlayLayer*, PlayerObject*, AgencyResult& out, int) { out = {}; return false; }
+bool TrajectoryPredictionService::predictStep(PlayLayer*, PlayerObject* source, bool, cocos2d::CCPoint& outPos, float& outRot) {
+    if (source) { outPos = source->getPosition(); outRot = source->getRotation(); }
+    return false;
+}
+bool TrajectoryPredictionService::extrapolateSubtick(PlayLayer*, PlayerObject*, float, SubtickPose& out) { out = {}; return false; }
+void TrajectoryPredictionService::traceSubtickBranch(PlayLayer*, PlayerObject*, float, bool, cocos2d::CCDrawNode*, cocos2d::ccColor4F, float) {}
+void TrajectoryPredictionService::setOverlaySuppressed(bool v) { m_overlaySuppressed = v; }
+int TrajectoryPredictionService::survivesFor(PlayLayer*, PlayerObject*, int, int) { return -1; }
+int TrajectoryPredictionService::survivesScript(PlayLayer*, PlayerObject*, int, ::std::vector<::std::pair<int, bool>> const&, ::std::vector<cocos2d::CCPoint>*) { return -1; }
+void TrajectoryPredictionService::captureFrameDelta(float dt) { if (dt > 0.f) m_context.stepDelta = dt; }
+void TrajectoryPredictionService::noteSimulatedDeath(PlayerObject*, GameObject*) {}
+bool TrajectoryPredictionService::ownsPreviewPlayer(PlayerObject*) const { return false; }
+int TrajectoryPredictionService::getSurvivedFrames(bool, bool) const { return 0; }
+void TrajectoryPredictionService::onRealClick(bool, bool) {}
+void TrajectoryPredictionService::simulateCollisionBatch(GJBaseGameLayer*, PlayerObject*, gd::vector<GameObject*>*, int, float) {}
+bool TrajectoryPredictionService::handleActivationCheck(PlayerObject*, EffectGameObject*) { return false; }
+void TrajectoryPredictionService::handleTouchedTrigger(PlayerObject*, EffectGameObject*) {}
+} // namespace gucci
+"@
+          [System.IO.File]::WriteAllText($traj, $trajStub, $utf8NoBom)
 
       - name: Build GucciBot
         id: build

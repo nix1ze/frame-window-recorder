@@ -49,8 +49,6 @@ jobs:
             [System.IO.File]::WriteAllText($_.FullName, $text, $utf8NoBom)
           }
 
-          # Frame-window analyzer: GD 2.2074 has no PlayLayer::m_playerDied.
-          # GucciBot already has m_probeDied specifically for Calculate probes.
           $fw = 'guccibot/src/analysis/ac/framewindow.cpp'
           $text = [System.IO.File]::ReadAllText($fw)
           $text = $text.Replace('m_probeDied || pl->m_playerDied', 'm_probeDied')
@@ -64,58 +62,19 @@ jobs:
           $text = [regex]::Replace($text, $reportPattern, $reportStub, 1)
           [System.IO.File]::WriteAllText($fw, $text, $utf8NoBom)
 
-          # Cosmetic CCDrawNode internals became protected in the old SDK.
           $mp = 'guccibot/src/analysis/macropath.cpp'
           $text = [System.IO.File]::ReadAllText($mp)
           $text = $text.Replace('lineNode->m_bUseArea = false;', '')
           $text = $text.Replace('markerNode->m_bUseArea = false;', '')
           [System.IO.File]::WriteAllText($mp, $text, $utf8NoBom)
 
-          # Old pathfinder death check equivalent.
           $pf = 'guccibot/src/analysis/pathfinder.cpp'
           $text = [System.IO.File]::ReadAllText($pf)
           $text = $text.Replace('pl->m_playerDied', '(pl->m_player1 && pl->m_player1->m_isDead)')
           [System.IO.File]::WriteAllText($pf, $text, $utf8NoBom)
 
-          # Trajectory preview in this revision snapshots several fields that
-          # only exist in GD 2.2081. It is not used by Calculate itself, so on
-          # 2.2074 provide a safe no-op service while retaining the public API.
           $traj = 'guccibot/src/analysis/trajectory.cpp'
-          $trajStub = @"
-#include "trajectory.hpp"
-
-namespace gucci {
-TrajectoryPredictionService& TrajectoryPredictionService::get() {
-    static TrajectoryPredictionService s;
-    return s;
-}
-bool TrajectoryPredictionService::isActiveSimulation() const { return false; }
-bool TrajectoryPredictionService::isProcessingOrbTouch() const { return false; }
-void TrajectoryPredictionService::markDirty() { m_context.dirty = true; }
-void TrajectoryPredictionService::clearOverlay() {}
-void TrajectoryPredictionService::attach(PlayLayer*) {}
-void TrajectoryPredictionService::detach() {}
-void TrajectoryPredictionService::updatePreview(PlayLayer*) {}
-bool TrajectoryPredictionService::probeAgency(PlayLayer*, PlayerObject*, AgencyResult& out, int) { out = {}; return false; }
-bool TrajectoryPredictionService::predictStep(PlayLayer*, PlayerObject* source, bool, cocos2d::CCPoint& outPos, float& outRot) {
-    if (source) { outPos = source->getPosition(); outRot = source->getRotation(); }
-    return false;
-}
-bool TrajectoryPredictionService::extrapolateSubtick(PlayLayer*, PlayerObject*, float, SubtickPose& out) { out = {}; return false; }
-void TrajectoryPredictionService::traceSubtickBranch(PlayLayer*, PlayerObject*, float, bool, cocos2d::CCDrawNode*, cocos2d::ccColor4F, float) {}
-void TrajectoryPredictionService::setOverlaySuppressed(bool v) { m_overlaySuppressed = v; }
-int TrajectoryPredictionService::survivesFor(PlayLayer*, PlayerObject*, int, int) { return -1; }
-int TrajectoryPredictionService::survivesScript(PlayLayer*, PlayerObject*, int, ::std::vector<::std::pair<int, bool>> const&, ::std::vector<cocos2d::CCPoint>*) { return -1; }
-void TrajectoryPredictionService::captureFrameDelta(float dt) { if (dt > 0.f) m_context.stepDelta = dt; }
-void TrajectoryPredictionService::noteSimulatedDeath(PlayerObject*, GameObject*) {}
-bool TrajectoryPredictionService::ownsPreviewPlayer(PlayerObject*) const { return false; }
-int TrajectoryPredictionService::getSurvivedFrames(bool, bool) const { return 0; }
-void TrajectoryPredictionService::onRealClick(bool, bool) {}
-void TrajectoryPredictionService::simulateCollisionBatch(GJBaseGameLayer*, PlayerObject*, gd::vector<GameObject*>*, int, float) {}
-bool TrajectoryPredictionService::handleActivationCheck(PlayerObject*, EffectGameObject*) { return false; }
-void TrajectoryPredictionService::handleTouchedTrigger(PlayerObject*, EffectGameObject*) {}
-} // namespace gucci
-"@
+          $trajStub = [System.Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('I2luY2x1ZGUgInRyYWplY3RvcnkuaHBwIgoKbmFtZXNwYWNlIGd1Y2NpIHsKVHJhamVjdG9yeVByZWRpY3Rpb25TZXJ2aWNlJiBUcmFqZWN0b3J5UHJlZGljdGlvblNlcnZpY2U6OmdldCgpIHsKICAgIHN0YXRpYyBUcmFqZWN0b3J5UHJlZGljdGlvblNlcnZpY2UgczsKICAgIHJldHVybiBzOwp9CmJvb2wgVHJhamVjdG9yeVByZWRpY3Rpb25TZXJ2aWNlOjppc0FjdGl2ZVNpbXVsYXRpb24oKSBjb25zdCB7IHJldHVybiBmYWxzZTsgfQpib29sIFRyYWplY3RvcnlQcmVkaWN0aW9uU2VydmljZTo6aXNQcm9jZXNzaW5nT3JiVG91Y2goKSBjb25zdCB7IHJldHVybiBmYWxzZTsgfQp2b2lkIFRyYWplY3RvcnlQcmVkaWN0aW9uU2VydmljZTo6bWFya0RpcnR5KCkgeyBtX2NvbnRleHQuZGlydHkgPSB0cnVlOyB9CnZvaWQgVHJhamVjdG9yeVByZWRpY3Rpb25TZXJ2aWNlOjpjbGVhck92ZXJsYXkoKSB7fQp2b2lkIFRyYWplY3RvcnlQcmVkaWN0aW9uU2VydmljZTo6YXR0YWNoKFBsYXlMYXllciopIHt9CnZvaWQgVHJhamVjdG9yeVByZWRpY3Rpb25TZXJ2aWNlOjpkZXRhY2goKSB7fQp2b2lkIFRyYWplY3RvcnlQcmVkaWN0aW9uU2VydmljZTo6dXBkYXRlUHJldmlldyhQbGF5TGF5ZXIqKSB7fQpib29sIFRyYWplY3RvcnlQcmVkaWN0aW9uU2VydmljZTo6cHJvYmVBZ2VuY3koUGxheUxheWVyKiwgUGxheWVyT2JqZWN0KiwgQWdlbmN5UmVzdWx0JiBvdXQsIGludCkgeyBvdXQgPSB7fTsgcmV0dXJuIGZhbHNlOyB9CmJvb2wgVHJhamVjdG9yeVByZWRpY3Rpb25TZXJ2aWNlOjpwcmVkaWN0U3RlcChQbGF5TGF5ZXIqLCBQbGF5ZXJPYmplY3QqIHNvdXJjZSwgYm9vbCwgY29jb3MyZDo6Q0NQb2ludCYgb3V0UG9zLCBmbG9hdCYgb3V0Um90KSB7CiAgICBpZiAoc291cmNlKSB7IG91dFBvcyA9IHNvdXJjZS0+Z2V0UG9zaXRpb24oKTsgb3V0Um90ID0gc291cmNlLT5nZXRSb3RhdGlvbigpOyB9CiAgICByZXR1cm4gZmFsc2U7Cn0KYm9vbCBUcmFqZWN0b3J5UHJlZGljdGlvblNlcnZpY2U6OmV4dHJhcG9sYXRlU3VidGljayhQbGF5TGF5ZXIqLCBQbGF5ZXJPYmplY3QqLCBmbG9hdCwgU3VidGlja1Bvc2UmIG91dCkgeyBvdXQgPSB7fTsgcmV0dXJuIGZhbHNlOyB9CnZvaWQgVHJhamVjdG9yeVByZWRpY3Rpb25TZXJ2aWNlOjp0cmFjZVN1YnRpY2tCcmFuY2goUGxheUxheWVyKiwgUGxheWVyT2JqZWN0KiwgZmxvYXQsIGJvb2wsIGNvY29zMmQ6OkNDRHJhd05vZGUqLCBjb2NvczJkOjpjY0NvbG9yNEYsIGZsb2F0KSB7fQp2b2lkIFRyYWplY3RvcnlQcmVkaWN0aW9uU2VydmljZTo6c2V0T3ZlcmxheVN1cHByZXNzZWQoYm9vbCB2KSB7IG1fb3ZlcmxheVN1cHByZXNzZWQgPSB2OyB9CmludCBUcmFqZWN0b3J5UHJlZGljdGlvblNlcnZpY2U6OnN1cnZpdmVzRm9yKFBsYXlMYXllciosIFBsYXllck9iamVjdCosIGludCwgaW50KSB7IHJldHVybiAtMTsgfQppbnQgVHJhamVjdG9yeVByZWRpY3Rpb25TZXJ2aWNlOjpzdXJ2aXZlc1NjcmlwdChQbGF5TGF5ZXIqLCBQbGF5ZXJPYmplY3QqLCBpbnQsIDo6c3RkOjp2ZWN0b3I8OjpzdGQ6OnBhaXI8aW50LCBib29sPj4gY29uc3QmLCA6OnN0ZDo6dmVjdG9yPGNvY29zMmQ6OkNDUG9pbnQ+KikgeyByZXR1cm4gLTE7IH0Kdm9pZCBUcmFqZWN0b3J5UHJlZGljdGlvblNlcnZpY2U6OmNhcHR1cmVGcmFtZURlbHRhKGZsb2F0IGR0KSB7IGlmIChkdCA+IDAuZikgbV9jb250ZXh0LnN0ZXBEZWx0YSA9IGR0OyB9CnZvaWQgVHJhamVjdG9yeVByZWRpY3Rpb25TZXJ2aWNlOjpub3RlU2ltdWxhdGVkRGVhdGgoUGxheWVyT2JqZWN0KiwgR2FtZU9iamVjdCopIHt9CmJvb2wgVHJhamVjdG9yeVByZWRpY3Rpb25TZXJ2aWNlOjpvd25zUHJldmlld1BsYXllcihQbGF5ZXJPYmplY3QqKSBjb25zdCB7IHJldHVybiBmYWxzZTsgfQppbnQgVHJhamVjdG9yeVByZWRpY3Rpb25TZXJ2aWNlOjpnZXRTdXJ2aXZlZEZyYW1lcyhib29sLCBib29sKSBjb25zdCB7IHJldHVybiAwOyB9CnZvaWQgVHJhamVjdG9yeVByZWRpY3Rpb25TZXJ2aWNlOjpvblJlYWxDbGljayhib29sLCBib29sKSB7fQp2b2lkIFRyYWplY3RvcnlQcmVkaWN0aW9uU2VydmljZTo6c2ltdWxhdGVDb2xsaXNpb25CYXRjaChHSkJhc2VHYW1lTGF5ZXIqLCBQbGF5ZXJPYmplY3QqLCBnZDo6dmVjdG9yPEdhbWVPYmplY3QqPiosIGludCwgZmxvYXQpIHt9CmJvb2wgVHJhamVjdG9yeVByZWRpY3Rpb25TZXJ2aWNlOjpoYW5kbGVBY3RpdmF0aW9uQ2hlY2soUGxheWVyT2JqZWN0KiwgRWZmZWN0R2FtZU9iamVjdCopIHsgcmV0dXJuIGZhbHNlOyB9CnZvaWQgVHJhamVjdG9yeVByZWRpY3Rpb25TZXJ2aWNlOjpoYW5kbGVUb3VjaGVkVHJpZ2dlcihQbGF5ZXJPYmplY3QqLCBFZmZlY3RHYW1lT2JqZWN0Kikge30KfSAvLyBuYW1lc3BhY2UgZ3VjY2kK'))
           [System.IO.File]::WriteAllText($traj, $trajStub, $utf8NoBom)
 
       - name: Build GucciBot

@@ -40,7 +40,36 @@ jobs:
           use-lto: false
           configure-args: -DCMAKE_CXX_FLAGS=-D_ALLOW_COMPILER_AND_STL_VERSION_MISMATCH
 
+      - name: Diagnose generated binding symbols
+        if: always()
+        shell: powershell
+        run: |
+          Write-Host "=== Generated source matches ==="
+          if (Test-Path "build/bindings/bindings/Geode/GeneratedSource.cpp") {
+            Select-String -Path "build/bindings/bindings/Geode/GeneratedSource.cpp" -Pattern "handleButton|processCommands|resetLevel|levelComplete|ButtonSprite::create|FLAlertLayer::create" -Context 2,2
+          }
+          Write-Host "=== GeodeBindings symbols ==="
+          if (Test-Path "build/bindings/GeodeBindings.lib") {
+            & "$env:GITHUB_WORKSPACE/llvm/bin/llvm-nm.exe" -C "build/bindings/GeodeBindings.lib" | Select-String "handleButton|processCommands|resetLevel|levelComplete|ButtonSprite::create|FLAlertLayer::create"
+          }
+          Write-Host "=== Mod object undefined/defined symbols ==="
+          $obj = Get-ChildItem -Path build -Recurse -Filter main.cpp.obj | Select-Object -First 1
+          if ($obj) {
+            & "$env:GITHUB_WORKSPACE/llvm/bin/llvm-nm.exe" -C $obj.FullName | Select-String "handleButton|processCommands|resetLevel|levelComplete|ButtonSprite::create|FLAlertLayer::create"
+          }
+
+      - name: Upload diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bindings-diagnostics-2.2074
+          path: |
+            build/bindings/bindings/Geode/GeneratedSource.cpp
+            build/bindings/bindings/Geode/binding
+          if-no-files-found: ignore
+
       - name: Upload .geode
+        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: FrameWindowRecorder-Windows-2.2074

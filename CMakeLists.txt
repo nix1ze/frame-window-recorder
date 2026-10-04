@@ -2,10 +2,10 @@ cmake_minimum_required(VERSION 3.21)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-project(FrameWindowRecorder VERSION 0.1.2)
+project(FrameWindowRecorder VERSION 0.1.3)
 
 add_library(${PROJECT_NAME} SHARED
-    src/main_v2.cpp
+    src/main_v3.cpp
 )
 
 if (NOT DEFINED ENV{GEODE_SDK})

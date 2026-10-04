@@ -49,37 +49,18 @@ jobs:
             [System.IO.File]::WriteAllText($_.FullName, $text, $utf8NoBom)
           }
 
-          # 2.2074 does not expose PlayLayer::m_playerDied. GucciBot already
-          # tracks suppressed analyzer deaths in m_probeDied, so use that as
-          # the single source of truth.
           $fw = 'guccibot/src/analysis/ac/framewindow.cpp'
           $text = [System.IO.File]::ReadAllText($fw)
           $text = $text.Replace('m_probeDied || pl->m_playerDied', 'm_probeDied')
           $text = $text.Replace('pl->m_playerDied = false;', '/* GD 2.2074: m_probeDied is authoritative */')
           $text = $text.Replace('m_index, m_samples.size(), pl->m_playerDied);', 'm_index, m_samples.size(), m_probeDied);')
 
-          # The large PlayerObject byte/field table is diagnostic-only and is
-          # tied to the 2.2081 PlayerObject layout. Stub it on 2.2074 so the
-          # actual Calculate/frame-window engine can compile against the old
-          # layout without reading nonexistent fields.
           $diagPattern = '(?s)namespace \{\r?\nstruct PlayerField.*?\}\s*// namespace gucci\r?\n'
-          $diagStub = @'
-namespace gucci {
-::std::vector<::std::string> fwPlayerFieldDump(PlayerObject* p) {
-    (void)p;
-    return {};
-}
-} // namespace gucci
-'@
+          $diagStub = "namespace gucci {`n::std::vector<::std::string> fwPlayerFieldDump(PlayerObject* p) {`n    (void)p;`n    return {};`n}`n} // namespace gucci`n"
           $text = [regex]::Replace($text, $diagPattern, $diagStub, 1)
 
           $reportPattern = '(?s)void FrameWindowAnalyzer::reportStateDiff\(PlayLayer\* pl\) \{.*?\r?\n\}\r?\n\r?\n(?=void FrameWindowAnalyzer::reassertHeldButtons)'
-          $reportStub = @'
-void FrameWindowAnalyzer::reportStateDiff(PlayLayer* pl) {
-    (void)pl;
-}
-
-'@
+          $reportStub = "void FrameWindowAnalyzer::reportStateDiff(PlayLayer* pl) {`n    (void)pl;`n}`n`n"
           $text = [regex]::Replace($text, $reportPattern, $reportStub, 1)
           [System.IO.File]::WriteAllText($fw, $text, $utf8NoBom)
 

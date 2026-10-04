@@ -1,0 +1,59 @@
+name: Build GucciBot for GD 2.2074
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/build-guccibot-22074.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build-windows:
+    runs-on: windows-2022
+    env:
+      CXXFLAGS: -D_ALLOW_COMPILER_AND_STL_VERSION_MISMATCH
+    steps:
+      - name: Checkout build harness
+        uses: actions/checkout@v4
+
+      - name: Checkout GucciBot source
+        uses: actions/checkout@v4
+        with:
+          repository: Nigelx1/GucciBot
+          ref: master
+          path: guccibot
+
+      - name: Patch metadata for GD 2.2074 / Geode 4.4.0
+        shell: powershell
+        run: |
+          $p = 'guccibot/mod.json'
+          $j = Get-Content $p -Raw | ConvertFrom-Json
+          $j.geode = '4.4.0'
+          $j.gd.win = '2.2074'
+          $j.version = 'v2.0.0-beta.2-22074'
+          $j.description = $j.description + ' (unofficial GD 2.2074 compatibility build)'
+          $j | ConvertTo-Json -Depth 20 | Set-Content $p -Encoding utf8
+
+      - name: Build GucciBot
+        id: build
+        uses: geode-sdk/build-geode-mod@fa00cb245f128c40c90fd234c6347f635692c3ef
+        with:
+          path: guccibot
+          sdk: given
+          target: Win64
+          build-config: Release
+          bindings: geode-sdk/bindings
+          bindings-ref: 23c39fcda5dc660d8e92f3fb14f29b0a58a15f98
+          ccache-variant: ''
+          use-cpm-cache: false
+          use-lto: false
+          configure-args: -DSKIP_BUILDING_CODEGEN=OFF
+
+      - name: Upload GucciBot 2.2074
+        uses: actions/upload-artifact@v4
+        with:
+          name: GucciBot-Windows-GD-2.2074
+          path: ${{ steps.build.outputs.build-output }}
+          if-no-files-found: error

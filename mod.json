@@ -1,9 +1,9 @@
 {
-  "geode": "5.10.1",
+  "geode": "4.0.0",
   "gd": {
-    "win": "2.2081"
+    "win": "2.2074"
   },
-  "version": "v0.1.0",
+  "version": "v0.1.1",
   "id": "egor.frame-window-recorder",
   "name": "Frame Window Recorder",
   "developer": "Egor + OpenAI",
@@ -15,7 +15,7 @@
       "min": 1,
       "max": 120,
       "name": "Max probe shift",
-      "description": "Maximum number of 240 TPS physics frames to test early and late for each input."
+      "description": "Maximum number of physics frames to test early and late for each input."
     },
     "analyze-releases": {
       "type": "bool",

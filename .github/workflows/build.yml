@@ -11,6 +11,8 @@ permissions:
 jobs:
   build-windows:
     runs-on: windows-2022
+    env:
+      CXXFLAGS: -D_ALLOW_COMPILER_AND_STL_VERSION_MISMATCH
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -28,13 +30,15 @@ jobs:
 
       - name: Build Geode mod
         id: build
-        uses: geode-sdk/build-geode-mod@main
+        uses: geode-sdk/build-geode-mod@fa00cb245f128c40c90fd234c6347f635692c3ef
         with:
           sdk: given
           target: Win64
           build-config: Release
           bindings: geode-sdk/bindings
           bindings-ref: 23c39fcda5dc660d8e92f3fb14f29b0a58a15f98
+          ccache-variant: ''
+          use-cpm-cache: false
           use-lto: false
           configure-args: -DSKIP_BUILDING_CODEGEN=OFF
 

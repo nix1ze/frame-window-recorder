@@ -3,11 +3,11 @@
   "gd": {
     "win": "2.2074"
   },
-  "version": "v0.1.1",
+  "version": "v0.1.2",
   "id": "egor.frame-window-recorder",
   "name": "Frame Window Recorder",
   "developer": "Egor + OpenAI",
-  "description": "Records a successful macro first, then measures the real frame window of each input by replaying shifted inputs against Geometry Dash itself.",
+  "description": "Measures click frame windows with local survival tests, colored in-level rings and sound cues.",
   "settings": {
     "max-shift": {
       "type": "int",
@@ -19,7 +19,7 @@
     },
     "analyze-releases": {
       "type": "bool",
-      "default": true,
+      "default": false,
       "name": "Analyze releases",
       "description": "Also measure release timing windows. Disable to measure presses only."
     },
@@ -30,6 +30,22 @@
       "max": 3,
       "name": "Replay inject offset",
       "description": "If a clean macro replay is consistently one tick off, try -1 or +1."
+    },
+    "validation-frames": {
+      "type": "int",
+      "default": 120,
+      "min": 8,
+      "max": 1200,
+      "name": "Validation horizon",
+      "description": "How many physics ticks a shifted click must survive before it counts as valid. Shorter avoids unrelated later deaths."
+    },
+    "next-input-slack": {
+      "type": "int",
+      "default": 2,
+      "min": 0,
+      "max": 20,
+      "name": "Next input slack",
+      "description": "Stops a probe this many ticks before the next independent click, so a later click is not blamed on the one being measured."
     }
   }
 }

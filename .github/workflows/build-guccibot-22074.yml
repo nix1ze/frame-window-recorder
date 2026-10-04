@@ -25,23 +25,28 @@ jobs:
           ref: master
           path: guccibot
 
-      - name: Patch metadata for GD 2.2074 / Geode 4.4.0
+      - name: Patch source for GD 2.2074 / Geode 4.0.0
         shell: powershell
         run: |
           $p = 'guccibot/mod.json'
           $j = Get-Content $p -Raw | ConvertFrom-Json
-          $j.geode = '4.4.0'
+          $j.geode = '4.0.0'
           $j.gd.win = '2.2074'
           $j.version = 'v2.0.0-beta.2-22074'
           $j.description = $j.description + ' (unofficial GD 2.2074 compatibility build)'
           $j | ConvertTo-Json -Depth 20 | Set-Content $p -Encoding utf8
+
+          $cmake = 'guccibot/CMakeLists.txt'
+          $src = Get-Content $cmake -Raw
+          $src = $src.Replace('CPMAddPackage("gh:cursey/safetyhook#main")', 'CPMAddPackage("gh:cursey/safetyhook#661227263199a15a046b241bb096cf4501e6023a")')
+          Set-Content $cmake $src -Encoding utf8
 
       - name: Build GucciBot
         id: build
         uses: geode-sdk/build-geode-mod@fa00cb245f128c40c90fd234c6347f635692c3ef
         with:
           path: guccibot
-          sdk: given
+          sdk: 4.0.0
           target: Win64
           build-config: Release
           bindings: geode-sdk/bindings

@@ -48,7 +48,11 @@ $text = $text.Replace('queueButton(1, res.p2Press, true, 0.0)', 'queueButton(1, 
 # Hitbox overlay uses several later/private bindings and is not required for
 # recording, replay, or Frame Windows. Disable this visual-only translation unit.
 $hb = 'guccibot/src/hitboxes.cpp'
-[System.IO.File]::WriteAllText($hb, "#include \"GucciBot.hpp\"`n// Hitbox overlay disabled on the GD 2.2074 compatibility build.`n", $utf8NoBom)
+$hbStub = @'
+#include "GucciBot.hpp"
+// Hitbox overlay disabled on the GD 2.2074 compatibility build.
+'@
+[System.IO.File]::WriteAllText($hb, $hbStub, $utf8NoBom)
 
 # Geode 4 file pickers return paths directly instead of optional paths; the X-velocity
 # helper is not bound in 2.2074, so omit that optional HUD value.

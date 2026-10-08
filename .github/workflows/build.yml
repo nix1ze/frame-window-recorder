@@ -54,20 +54,20 @@ jobs:
     env:
       CXXFLAGS: -D_ALLOW_COMPILER_AND_STL_VERSION_MISMATCH
     steps:
-      - name: Checkout GucciBot beta.2
+      - name: Checkout GucciBot 1.8
         uses: actions/checkout@v4
         with:
           repository: Nigelx1/GucciBot
-          ref: v2.0.0-beta.2
+          ref: v1.8.0
 
-      - name: Patch GucciBot metadata
+      - name: Patch GucciBot for GD 2.2074
         shell: powershell
         run: |
           $p = "mod.json"
           $j = Get-Content $p -Raw
           $j = $j.Replace('"geode": "5.10.1"', '"geode": "4.4.0"')
           $j = $j.Replace('"win": "2.2081"', '"win": "2.2074"')
-          $j = $j.Replace('"version": "v2.0.0-beta.2"', '"version": "v2.0.0-beta.2-22074"')
+          $j = $j.Replace('"version": "v1.8.0"', '"version": "v1.8.0-22074"')
           Set-Content $p $j -NoNewline
 
           $cm = "CMakeLists.txt"
@@ -77,54 +77,6 @@ jobs:
 
           Invoke-WebRequest -Uri "https://raw.githubusercontent.com/Nigelx1/GucciBot/cbf684b3c6a527c5441e438063217024dc43663d/src/render/ffmpeg.hpp" -OutFile "src/render/ffmpeg.hpp"
           Invoke-WebRequest -Uri "https://raw.githubusercontent.com/Nigelx1/GucciBot/14ee5382bd577eb80d86ee88a7388e24f5e72222/src/render/colorspace/colorspace.hpp" -OutFile "src/render/colorspace/colorspace.hpp"
-
-          $judge = "src/absense/judge.cpp"
-          $s = Get-Content $judge -Raw
-          $s = $s.Replace('queueButton(1, false, false, 0.0)', 'queueButton(1, false, false)')
-          $s = $s.Replace('queueButton(1, true, false, 0.0)', 'queueButton(1, true, false)')
-          $s = $s.Replace('queueButton(1, in.held, false, 0.0)', 'queueButton(1, in.held, false)')
-          Set-Content $judge $s -NoNewline
-
-          $gpu = "src/absense/gpu/client.cpp"
-          $s = Get-Content $gpu -Raw
-          $s = $s.Replace('const uint32_t commandIndex = pl->m_gameState.m_commandIndex;', 'const uint32_t commandIndex = static_cast<uint32_t>(pl->m_gameState.m_currentProgress);')
-          Set-Content $gpu $s -NoNewline
-
-          $hooks = "src/absense/hooks.cpp"
-          $s = Get-Content $hooks -Raw
-          $s = [regex]::Replace($s, '(?s)\n    void rotateObjects\(.*?\n    \}', '')
-          $s = [regex]::Replace($s, '(?s)\n    void rotateObject\(.*?\n    \}', '')
-          $s = [regex]::Replace($s, '(?s)\n    void transformAreaObjects\(.*?\n    \}', '')
-          $s = [regex]::Replace($s, '(?s)\n    void toggleGroup\(.*?\n    \}', '')
-          $s = [regex]::Replace($s, '(?s)\n    void activatedByPlayer\(.*?\n    \}', '')
-          Set-Content $hooks $s -NoNewline
-
-          $pf = "src/absense/pathfinder/pathfinder.cpp"
-          $s = Get-Content $pf -Raw
-          $s = $s.Replace('queueButton(1, false, player2, 0.0)', 'queueButton(1, false, player2)')
-          $s = $s.Replace('queueButton(1, true, player2, 0.0)', 'queueButton(1, true, player2)')
-          $s = $s.Replace('queueButton(1, in.held, player2, 0.0)', 'queueButton(1, in.held, player2)')
-          $s = $s.Replace(' || pl->m_playerDied', '')
-          $s = $s.Replace(' && !pl->m_playerDied', '')
-          Set-Content $pf $s -NoNewline
-
-          $gj = "src/absense/physics/gjbasegamelayer.cpp"
-          $s = Get-Content $gj -Raw
-          $s = [regex]::Replace($s, 'player = reinterpret_cast<PlayerObject\\*>\\(\\s*reinterpret_cast<uintptr_t>\\(pl->m_varianceValues\\.data\\(\\)\\) \\+ 0xe5\\);', 'player = pl->m_player1;')
-          $s = $s.Replace('object->m_staticForceAdditive', 'false')
-          $s = $s.Replace('object->m_snapGround', 'false')
-          Set-Content $gj $s -NoNewline
-
-          $col = "src/absense/physics/collisions.cpp"
-          $s = Get-Content $col -Raw
-          $s = [regex]::Replace($s, '(?s)\\n    if \\(player->m_unk669\\) \\{.*?\\n    float someValue = 0\\.0;', [Environment]::NewLine + '    float someValue = 0.0;')
-          $s = $s.Replace('!gameLayer->m_gameState.m_isFreeMode &&', '')
-          $s = $s.Replace('gameLayer->m_maxGameplayY', '100000.0f')
-          $s = $s.Replace('pl->m_gameState.m_activatedObjectIDs', 'pl->m_gameState.m_unkMapPairIntIntInt')
-          $s = $s.Replace('const bool multi = object->canMultiActivate(player->m_isPlatformer);', 'const bool multi = object->m_isMultiActivate && !object->m_isNoMultiActivate;')
-          $s = $s.Replace('pl->m_gameState.m_commandIndex', 'pl->m_gameState.m_currentProgress')
-          $s = [regex]::Replace($s, '(?s)    const bool isP2 = Bot::get\\(\\)->trajectory\\(\\)\\.unsafeInner\\(\\)->m_fakePlayer2 == player;\\r?\\n    return !\\(isP2 \\? object->m_activatedByPlayer2 : object->m_activatedByPlayer1\\);', '    return true;')
-          Set-Content $col $s -NoNewline
 
       - name: Build GucciBot for GD 2.2074
         id: gucci

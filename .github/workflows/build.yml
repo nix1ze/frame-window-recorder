@@ -54,20 +54,20 @@ jobs:
     env:
       CXXFLAGS: -D_ALLOW_COMPILER_AND_STL_VERSION_MISMATCH
     steps:
-      - name: Checkout GucciBot 1.8
+      - name: Checkout GucciBot 1.0.1
         uses: actions/checkout@v4
         with:
           repository: Nigelx1/GucciBot
-          ref: v1.8.0
+          ref: v1.0.1
 
       - name: Patch GucciBot for GD 2.2074
         shell: powershell
         run: |
           $p = "mod.json"
           $j = Get-Content $p -Raw
-          $j = $j.Replace('"geode": "5.10.1"', '"geode": "4.4.0"')
+          $j = $j.Replace('"geode": "5.7.1"', '"geode": "4.4.0"')
           $j = $j.Replace('"win": "2.2081"', '"win": "2.2074"')
-          $j = $j.Replace('"version": "v1.8.0"', '"version": "v1.8.0-22074"')
+          $j = $j.Replace('"version": "v1.0.1"', '"version": "v1.0.1-22074"')
           Set-Content $p $j -NoNewline
 
           $cm = "CMakeLists.txt"

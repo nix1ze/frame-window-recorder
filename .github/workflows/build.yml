@@ -75,6 +75,9 @@ jobs:
           $cs = $cs.Replace('CPMAddPackage("gh:cursey/safetyhook#main")', 'CPMAddPackage("gh:cursey/safetyhook#755a4a08aa7d0d7143331dc854235ebc2d1570f9")')
           Set-Content $cm $cs -NoNewline
 
+          Invoke-WebRequest -Uri "https://raw.githubusercontent.com/Nigelx1/GucciBot/cbf684b3c6a527c5441e438063217024dc43663d/src/render/ffmpeg.hpp" -OutFile "src/render/ffmpeg.hpp"
+          Invoke-WebRequest -Uri "https://raw.githubusercontent.com/Nigelx1/GucciBot/14ee5382bd577eb80d86ee88a7388e24f5e72222/src/render/colorspace/colorspace.hpp" -OutFile "src/render/colorspace/colorspace.hpp"
+
       - name: Build GucciBot for GD 2.2074
         id: gucci
         uses: geode-sdk/build-geode-mod@fa00cb245f128c40c90fd234c6347f635692c3ef

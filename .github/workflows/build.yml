@@ -70,6 +70,11 @@ jobs:
           $j = $j.Replace('"version": "v2.0.0-beta.2"', '"version": "v2.0.0-beta.2-22074"')
           Set-Content $p $j -NoNewline
 
+          $cm = "CMakeLists.txt"
+          $cs = Get-Content $cm -Raw
+          $cs = $cs.Replace('CPMAddPackage("gh:cursey/safetyhook#main")', 'CPMAddPackage("gh:cursey/safetyhook#755a4a08aa7d0d7143331dc854235ebc2d1570f9")')
+          Set-Content $cm $cs -NoNewline
+
       - name: Build GucciBot for GD 2.2074
         id: gucci
         uses: geode-sdk/build-geode-mod@fa00cb245f128c40c90fd234c6347f635692c3ef

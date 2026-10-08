@@ -48,3 +48,45 @@ jobs:
           name: FrameWindowRecorder-Windows-2.2074
           path: ${{ steps.build.outputs.build-output }}
           if-no-files-found: error
+
+  build-guccibot-22074:
+    runs-on: windows-2022
+    env:
+      CXXFLAGS: -D_ALLOW_COMPILER_AND_STL_VERSION_MISMATCH
+    steps:
+      - name: Checkout GucciBot beta.2
+        uses: actions/checkout@v4
+        with:
+          repository: Nigelx1/GucciBot
+          ref: v2.0.0-beta.2
+
+      - name: Patch GucciBot metadata
+        shell: powershell
+        run: |
+          $p = "mod.json"
+          $j = Get-Content $p -Raw
+          $j = $j.Replace('"geode": "5.10.1"', '"geode": "4.4.0"')
+          $j = $j.Replace('"win": "2.2081"', '"win": "2.2074"')
+          $j = $j.Replace('"version": "v2.0.0-beta.2"', '"version": "v2.0.0-beta.2-22074"')
+          Set-Content $p $j -NoNewline
+
+      - name: Build GucciBot for GD 2.2074
+        id: gucci
+        uses: geode-sdk/build-geode-mod@fa00cb245f128c40c90fd234c6347f635692c3ef
+        with:
+          sdk: v4.4.0
+          target: Win64
+          build-config: Release
+          bindings: geode-sdk/bindings
+          bindings-ref: 23c39fcda5dc660d8e92f3fb14f29b0a58a15f98
+          ccache-variant: ''
+          use-cpm-cache: false
+          use-lto: false
+          configure-args: -DSKIP_BUILDING_CODEGEN=OFF
+
+      - name: Upload GucciBot 2.2074
+        uses: actions/upload-artifact@v4
+        with:
+          name: GucciBot-Windows-2.2074
+          path: ${{ steps.gucci.outputs.build-output }}
+          if-no-files-found: error

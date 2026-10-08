@@ -99,6 +99,33 @@ jobs:
           $s = [regex]::Replace($s, '(?s)\n    void activatedByPlayer\(.*?\n    \}', '')
           Set-Content $hooks $s -NoNewline
 
+          $pf = "src/absense/pathfinder/pathfinder.cpp"
+          $s = Get-Content $pf -Raw
+          $s = $s.Replace('queueButton(1, false, player2, 0.0)', 'queueButton(1, false, player2)')
+          $s = $s.Replace('queueButton(1, true, player2, 0.0)', 'queueButton(1, true, player2)')
+          $s = $s.Replace('queueButton(1, in.held, player2, 0.0)', 'queueButton(1, in.held, player2)')
+          $s = $s.Replace(' || pl->m_playerDied', '')
+          $s = $s.Replace(' && !pl->m_playerDied', '')
+          Set-Content $pf $s -NoNewline
+
+          $gj = "src/absense/physics/gjbasegamelayer.cpp"
+          $s = Get-Content $gj -Raw
+          $s = [regex]::Replace($s, 'player = reinterpret_cast<PlayerObject\\*>\\(\\s*reinterpret_cast<uintptr_t>\\(pl->m_varianceValues\\.data\\(\\)\\) \\+ 0xe5\\);', 'player = pl->m_player1;')
+          $s = $s.Replace('object->m_staticForceAdditive', 'false')
+          $s = $s.Replace('object->m_snapGround', 'false')
+          Set-Content $gj $s -NoNewline
+
+          $col = "src/absense/physics/collisions.cpp"
+          $s = Get-Content $col -Raw
+          $s = [regex]::Replace($s, '(?s)\\n    if \\(player->m_unk669\\) \\{.*?\\n    float someValue = 0\\.0;', [Environment]::NewLine + '    float someValue = 0.0;')
+          $s = $s.Replace('!gameLayer->m_gameState.m_isFreeMode &&', '')
+          $s = $s.Replace('gameLayer->m_maxGameplayY', '100000.0f')
+          $s = $s.Replace('pl->m_gameState.m_activatedObjectIDs', 'pl->m_gameState.m_unkMapPairIntIntInt')
+          $s = $s.Replace('const bool multi = object->canMultiActivate(player->m_isPlatformer);', 'const bool multi = object->m_isMultiActivate && !object->m_isNoMultiActivate;')
+          $s = $s.Replace('pl->m_gameState.m_commandIndex', 'pl->m_gameState.m_currentProgress')
+          $s = [regex]::Replace($s, '(?s)    const bool isP2 = Bot::get\\(\\)->trajectory\\(\\)\\.unsafeInner\\(\\)->m_fakePlayer2 == player;\\r?\\n    return !\\(isP2 \\? object->m_activatedByPlayer2 : object->m_activatedByPlayer1\\);', '    return true;')
+          Set-Content $col $s -NoNewline
+
       - name: Build GucciBot for GD 2.2074
         id: gucci
         uses: geode-sdk/build-geode-mod@fa00cb245f128c40c90fd234c6347f635692c3ef
